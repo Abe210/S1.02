@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <errno.h>
 
-#define TABLE_SIZE 300000
+#define TABLE_SIZE 3000000
 #define MAX_NAME 256 //Longueur maximale d'un Nom
 // DEFINITION D'UN TYPE PERSON : a person
 // Element: un prénom unique (Ex: ALain=Alain mais Alain!=Marc)
@@ -58,15 +58,6 @@ Liste GetSucc(Liste L) {
   if (EstVide(L))
     return liste_vide;
   return L->next;
-}
-//Display a person
-void displayList(Liste L){
-    Liste tmpL = L;
-    while (EstVide(tmpL) == false) {
-        printf("%i\t%s\t%i -- ",tmpL->sex[0], tmpL->name, tmpL->birthdate[0]);
-        tmpL = GetSucc(tmpL);
-    }
-    printf("\n");
 }
 
 //Return 0 if error, the converted number otherwise
@@ -134,10 +125,10 @@ void free_table(Liste *hash_table){
 }
 
 //find an Element in the table by their name (key)
-Liste hash_search(Liste *hash_table, Liste L){
-    int i = hash(L->name);
+Liste hash_search(Liste *hash_table, char *s){
+    int i = hash(s);
     Liste tmph = hash_table[i];
-    while(!EstVide(tmph) && strcmp(tmph->name,L->name)!=0){        
+    while(!EstVide(tmph) && strcmp(tmph->name,s)!=0){        
         tmph = GetSucc(tmph);
     }
     return tmph;
@@ -149,7 +140,7 @@ bool hash_table_insert(Liste *hash_table, Liste L){
     Liste tmpl = NULL;
     if (hash_table[i] != NULL) //collision
     {
-        tmpl = hash_search(hash_table,L); //Search if Person already exist
+        tmpl = hash_search(hash_table,L->name); //Search if Person already exist
         if (tmpl != NULL){ //Found
             if (L->sex[0] > 0)
             {
@@ -185,9 +176,7 @@ bool hash_table_insert(Liste *hash_table, Liste L){
 
 //Read the CSV and store into appropriate structure
 //second argument HashTable *ht
-void readCSV(char *filename,Liste *hash_table){
-    //arguments (File *fp, Liste Hashtable[SIZE], char *fileName)
-
+void readCSV(char *filename,Liste *hash_table,int *nombre){
     FILE *fp;
     fp = fopen(filename,"r");
     if(fp == NULL) {
@@ -196,6 +185,8 @@ void readCSV(char *filename,Liste *hash_table){
     }
 
     // Process Data here
+    nombre[0]=0;
+    nombre[1]=0;
     char *b = NULL;
     size_t bufsize = 50;
     b = malloc(bufsize * sizeof(char));
@@ -236,6 +227,8 @@ void readCSV(char *filename,Liste *hash_table){
                 default:
                     break;
             }
+            if(s == 1) nombre[1] = nombre[1] + nb;
+            if(s = 2) nombre[0] = nombre[0] + nb;
         }
         Liste ret = create_person(prenom,s,annee,nb);
         hash_table_insert(hash_table,ret);
@@ -244,62 +237,96 @@ void readCSV(char *filename,Liste *hash_table){
 }
 
 //User menu: choice 0 to 4
-void menu(Liste *hashtable){ //param: HashTable *ht,
-  int total=0;
-  int choix = -1;
-  char choix1 = 'x';
-  char prenom[MAX_NAME];
-  while (choix != 4)
-  {
-    printf("Que voulez-vous afficher ? (0 pour le menu) > ");
-    scanf("%d", &choix);
-    switch (choix)
+void menu(Liste *hashtable, int *nb){ 
+    Liste L;
+    int total=0;
+    int choix = -1;
+    char choix1 = 'x';
+    char prenom[MAX_NAME];
+    printf("0: Ce menu\n");
+    printf("1: Le nombre de naissances\n");
+    printf("2: Le nombre de prénoms\n");
+    printf("3: Statistiques sur un prénom\n");
+    printf("4: Quitter\n");
+    while (choix != 4)
     {
-      case 0:
-        printf("0: Ce menu\n");
-        printf("1: Le nombre de naissances\n");
-        printf("2: Le nombre de prénoms\n");
-        printf("3: Statistiques sur un prénom\n");
-        printf("4: Quitter\n");
-        break;
-      case 1:
-        //printf("Le fichier recouvre %d naissances.\n");
-        break;
-      case 2:
-
-        break;
-      case 3:
-        printf("Quel prénom ? ");
-        scanf("%s", prenom);
-        break;
-      
-      default:
-        break;
+        printf("Que voulez-vous afficher ? (0 pour le menu) > ");
+        scanf("%d", &choix);
+        switch (choix){
+            case 0:
+                printf("0: Ce menu\n");
+                printf("1: Le nombre de naissances\n");
+                printf("2: Le nombre de prénoms\n");
+                printf("3: Statistiques sur un prénom\n");
+                printf("4: Quitter\n");
+                break;
+            case 1:
+                printf("Le fichier recouvre %d naissances.\n",nb[0]+nb[1]);
+                break;
+            case 2:
+                //Le nombre de prénoms.
+                printf("Souhaitez-vous distinger le genre ? (O/N)");
+                scanf("%c", &choix1);
+                if(choix1 == 'O' || choix1 == 'o'){
+                    printf("Le fichier recouvre %d prénoms masculins et %d prénoms féminins.\n",nb[1],nb[0]);
+                }else if(choix1 == 'N' || choix1 == 'n'){
+                    printf("Le fichier recouvre %d prénoms\n",nb[1]+nb[0]);
+                }
+                break;
+            case 3:
+                //
+                printf("Quel prénom ? ");
+                scanf("%s", prenom);
+                L = hash_search(hashtable,prenom);
+                if(L == NULL){
+                    printf("Ce prénom n'existe pas\n");
+                    break;
+                } 
+                if(L->sex[0] != 0 && L->sex[1] != 0){
+                    printf("Souhaitez-vous distinger le genre ? (O/N)");
+                    scanf("%c", &choix1);
+                    if(choix1 == 'O' || choix1 == 'o'){
+                        printf("Le prénom %s a été donné à %d garçons et %d filles.\n",prenom,L->sex[1],L->sex[0]);
+                    }else if(choix1 == 'N' || choix1 == 'n'){
+                        printf("Le prénom %s a été donné à %d enfants.\n",prenom,L->sex[1]+L->sex[0]);
+                    }
+                    if(L->birthdate[0] < L->birthdate[2])
+                        printf("Année de première apparition %d.\n",L->birthdate[0]);
+                    printf("Année de première apparition %d.\n",L->birthdate[1]);
+                    if(L->birthdate[1] < L->birthdate[3])
+                        printf("Année de dernière apparition %d.\n",L->birthdate[3]);
+                    printf("Année de dernière apparition %d.\n",L->birthdate[2]);
+                    break;
+                }
+                printf("Le prénom %s a été donné à %d enfants.\n",prenom,L->sex[1]+L->sex[0]);
+                break;
+            
+            default:
+                break;
+        }
     }
-  }
-  printf("\nBye\n\n");
+    printf("\nBye\n\n");
 }
 
 int main(int argc, char *argv[]){
-
+    int nb_total[2]; //nb_total[0] = nb_femme & nb_total[1]=nb_homme
     //Liste hashtable[TABLE_SIZE];  /* create CONST number of pointers to type */
     Liste *hashtable = calloc(TABLE_SIZE, sizeof(Liste));
-
     if (hashtable == NULL) {
         printf("Error! memory not allocated.");
         exit(-1);
     }
     printf("TABLE INITIALIZED! \n\n");
 
-    char filename[100] = "Test.csv";
-    //char filename[100] = "dpt2020.csv";
+    //char filename[100] = "Test.csv";
+    char filename[100] = "dpt2020.csv";
     //make table "heads" NULL
     
-    readCSV(filename,hashtable);
-    menu(hashtable);
-    print_table(hashtable);
+    readCSV(filename,hashtable,nb_total);
+    menu(hashtable,nb_total);
 
-    // print_table();
+    //print_table(hashtable);
+
     free_table(hashtable);
 
 
