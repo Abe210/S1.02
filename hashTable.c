@@ -4,8 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <errno.h>
+#include<ctype.h>
 
-#define TABLE_SIZE 3000000
+#define TABLE_SIZE 3500000
 #define MAX_NAME 256 //Longueur maximale d'un Nom
 // DEFINITION D'UN TYPE PERSON : a person
 // Element: un prénom unique (Ex: ALain=Alain mais Alain!=Marc)
@@ -177,19 +178,15 @@ bool hash_table_insert(Liste *hash_table, Liste L){
 //Read the CSV and store into appropriate structure
 //second argument HashTable *ht
 void readCSV(char *filename,Liste *hash_table,int *nombre){
-    FILE *fp;
-    fp = fopen(filename,"r");
+    FILE *fp = fopen(filename,"r");
     if(fp == NULL) {
         perror("Error in opening file - Empty file");
         exit(1);
     }
-
+    printf("--Lecture de fichier--\n");
     // Process Data here
-    nombre[0]=0;
-    nombre[1]=0;
-    char *b = NULL;
-    size_t bufsize = 50;
-    b = malloc(bufsize * sizeof(char));
+    nombre[0]=0; //number of women
+    nombre[1]=0; //number of men
     char *token;
     char delim = ';';
     char *line; //pour stocker une ligne de strsep
@@ -199,12 +196,11 @@ void readCSV(char *filename,Liste *hash_table,int *nombre){
     int annee=0;
     int nb=0;
 
-    getline(&b,&bufsize,fp); //1st line: column names - "sexe;preusuel;annais;dpt;nombre"
-    while (!feof(fp))
+    fgets(line, 50, fp); //1st line: column names - "sexe;preusuel;annais;dpt;nombre"
+    while (fgets(line, 50, fp))
     {
-        getline(&b,&bufsize,fp);
         for (int i = 0; i < 5; i++) { // 5 columns
-            token = strsep(&b, &delim);
+            token = strsep(&line, &delim);
             switch (i){
                 /* for every element we store it in appropriate type */
                 case 0: //Convert sexe and year to int
@@ -233,7 +229,9 @@ void readCSV(char *filename,Liste *hash_table,int *nombre){
         Liste ret = create_person(prenom,s,annee,nb);
         hash_table_insert(hash_table,ret);
     }
-        fclose(fp);
+    //close file
+    fclose(fp);
+    system("clear");
 }
 
 //User menu: choice 0 to 4
@@ -318,14 +316,14 @@ int main(int argc, char *argv[]){
     }
     printf("TABLE INITIALIZED! \n\n");
 
-    //char filename[100] = "Test.csv";
-    char filename[100] = "dpt2020.csv";
+    char filename[100] = "Test.csv";
+    // char filename[100] = "dpt2020.csv";
     //make table "heads" NULL
     
     readCSV(filename,hashtable,nb_total);
     menu(hashtable,nb_total);
 
-    //print_table(hashtable);
+    print_table(hashtable);
 
     free_table(hashtable);
 
